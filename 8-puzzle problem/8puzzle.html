@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>8 Puzzle Visual Solver (A*)</title>
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+<style>
+body {
+  background:#020617;
+  color:white;
+}
+.board {
+  width:300px;
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:6px;
+  margin:auto;
+}
+.tile {
+  width:95px;
+  height:95px;
+  background:linear-gradient(135deg,#38bdf8,#0ea5e9);
+  border-radius:14px;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  font-size:2.3rem;
+  font-weight:bold;
+  cursor:pointer;
+}
+.empty {
+  background:#020617;
+  border:2px dashed #334155;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container text-center mt-4">
+<h2>🧩 8 Puzzle Visual Solver (A*)</h2>
+
+<div id="board" class="board my-3"></div>
+
+<button class="btn btn-primary" onclick="shuffle()">Shuffle</button>
+<button class="btn btn-success" onclick="solve()">Auto Solve</button>
+
+<h5 class="mt-3">Moves: <span id="moves">0</span></h5>
+</div>
+
+<script>
+let state=[1,2,3,4,0,6,7,5,8];
+let moves=0;
+
+function draw(){
+  const board=document.getElementById("board");
+  board.innerHTML="";
+  state.forEach((v,i)=>{
+    const d=document.createElement("div");
+    d.className="tile";
+    if(v==0) d.classList.add("empty");
+    else { d.innerText=v; d.onclick=()=>move(i); }
+    board.appendChild(d);
+  });
+  document.getElementById("moves").innerText=moves;
+}
+
+function move(i){
+  let z=state.indexOf(0);
+  let valid=[z-3,z+3];
+  if(z%3!=0) valid.push(z-1);
+  if(z%3!=2) valid.push(z+1);
+  if(valid.includes(i)){
+    [state[i],state[z]]=[state[z],state[i]];
+    moves++;
+    draw();
+  }
+}
+
+function shuffle(){
+  for(let i=0;i<100;i++){
+    let z=state.indexOf(0);
+    let valid=[z-3,z+3];
+    if(z%3!=0) valid.push(z-1);
+    if(z%3!=2) valid.push(z+1);
+    let r=valid[Math.floor(Math.random()*valid.length)];
+    if(r>=0 && r<9) [state[r],state[z]]=[state[z],state[r]];
+  }
+  moves=0;
+  draw();
+}
+
+function heuristic(s){
+  let goal=[1,2,3,4,5,6,7,8,0], d=0;
+  for(let i=0;i<9;i++){
+    if(s[i]!=0){
+      let gi=goal.indexOf(s[i]);
+      d+=Math.abs(Math.floor(i/3)-Math.floor(gi/3))+Math.abs(i%3-gi%3);
+    }
+  }
+  return d;
+}
+
+function neighbors(s){
+  let res=[], z=s.indexOf(0);
+  let dirs=[-3,3,-1,1];
+  dirs.forEach(d=>{
+    let nz=z+d;
+    if(nz>=0 && nz<9 &&
+      !(z%3==0 && d==-1) &&
+      !(z%3==2 && d==1)){
+        let ns=[...s];
+        [ns[z],ns[nz]]=[ns[nz],ns[z]];
+        res.push(ns);
+    }
+  });
+  return res;
+}
+
+function solve(){
+  let start=[...state], goal="1,2,3,4,5,6,7,8,0";
+  let pq=[{s:start,g:0,path:[start]}];
+  let seen=new Set();
+
+  while(pq.length){
+    pq.sort((a,b)=>(a.g+heuristic(a.s))-(b.g+heuristic(b.s)));
+    let cur=pq.shift();
+    let key=cur.s.join();
+    if(key==goal){
+      animate(cur.path);
+      return;
+    }
+    if(seen.has(key)) continue;
+    seen.add(key);
+
+    neighbors(cur.s).forEach(n=>{
+      pq.push({s:n,g:cur.g+1,path:[...cur.path,n]});
+    });
+  }
+}
+
+function animate(path){
+  let i=0;
+  let interval=setInterval(()=>{
+    if(i>=path.length){ clearInterval(interval); return; }
+    state=[...path[i]];
+    draw();
+    i++;
+  },600);
+}
+
+draw();
+</script>
+
+</body>
+</html>
